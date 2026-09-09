@@ -1,20 +1,26 @@
 "use client";
 
-import Link from "next/link";
+import { useTodoPanel } from "@/context/TodoPanelContext";
 import { useTasks } from "@/context/TasksContext";
 
 export function Todo() {
   const { recentTasks } = useTasks();
+  const { isOpen, isClosing, togglePanel } = useTodoPanel();
+  const active = isOpen && !isClosing;
 
   return (
-    <Link
-      href="/todo"
-      className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border-soft bg-panel p-4 shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40"
+    <button
+      type="button"
+      onClick={togglePanel}
+      aria-expanded={active}
+      className={`flex min-h-0 flex-1 flex-col rounded-2xl border bg-panel p-4 text-left shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40 ${
+        active ? "border-sage bg-mist/30" : "border-border-soft"
+      }`}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-moss-deep">To-do</h2>
         <span className="text-[10px] font-medium uppercase tracking-wider text-soil-muted">
-          Open
+          {active ? "Close" : "Open"}
         </span>
       </div>
 
@@ -64,6 +70,6 @@ export function Todo() {
           ))}
         </ul>
       )}
-    </Link>
+    </button>
   );
 }

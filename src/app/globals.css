@@ -48,3 +48,54 @@ body {
   color: var(--foreground);
   font-family: var(--font-quicksand), ui-rounded, sans-serif;
 }
+
+@keyframes todo-panel-in {
+  from {
+    width: 0;
+  }
+  to {
+    width: 22rem;
+  }
+}
+
+@keyframes todo-panel-out {
+  from {
+    width: 22rem;
+  }
+  to {
+    width: 0;
+  }
+}
+
+@keyframes todo-task-out {
+  from {
+    opacity: 1;
+    max-height: 5rem;
+    margin-bottom: 0;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: -0.5rem;
+    border-width: 0;
+    transform: translateX(0.75rem) scale(0.96);
+  }
+}
+
+.todo-panel-enter {
+  width: 22rem;
+  animation: todo-panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.todo-panel-exit {
+  animation: todo-panel-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.todo-task-exit {
+  animation: todo-task-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
