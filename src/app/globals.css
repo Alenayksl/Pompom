@@ -1,26 +1,50 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Soft pastel green & cream — lo-fi palette */
+  --cream: #f7f3eb;
+  --cream-deep: #efe8da;
+  --sage: #b8c9a9;
+  --sage-soft: #d4e0c8;
+  --moss: #8faa7e;
+  --moss-deep: #6b8f5e;
+  --leaf: #a3b895;
+  --soil: #5c6b52;
+  --soil-muted: #7a8a70;
+  --mist: #e8efe3;
+
+  --background: var(--cream);
+  --foreground: var(--soil);
+  --sidebar: var(--cream-deep);
+  --panel: #fffcf7;
+  --border-soft: #d9e2cf;
+  --accent: var(--moss);
+  --accent-soft: var(--sage-soft);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-cream: var(--cream);
+  --color-cream-deep: var(--cream-deep);
+  --color-sage: var(--sage);
+  --color-sage-soft: var(--sage-soft);
+  --color-moss: var(--moss);
+  --color-moss-deep: var(--moss-deep);
+  --color-leaf: var(--leaf);
+  --color-soil: var(--soil);
+  --color-soil-muted: var(--soil-muted);
+  --color-mist: var(--mist);
+  --color-sidebar: var(--sidebar);
+  --color-panel: var(--panel);
+  --color-border-soft: var(--border-soft);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: var(--font-quicksand);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-quicksand), ui-rounded, sans-serif;
 }
