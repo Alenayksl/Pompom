@@ -1,17 +1,17 @@
 "use client";
 
-import { useNotesPanel } from "@/context/NotesPanelContext";
+import { usePanels } from "@/context/PanelsContext";
 import { useNotes } from "@/context/NotesContext";
 
 export function Notes() {
   const { recentNotes } = useNotes();
-  const { isOpen, isClosing, togglePanel } = useNotesPanel();
-  const active = isOpen && !isClosing;
+  const { notes, togglePanel } = usePanels();
+  const active = notes.isOpen && !notes.isClosing;
 
   return (
     <button
       type="button"
-      onClick={togglePanel}
+      onClick={() => togglePanel("notes")}
       aria-expanded={active}
       className={`flex min-h-0 flex-1 flex-col rounded-2xl border bg-panel p-4 text-left shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40 ${
         active ? "border-sage bg-mist/30" : "border-border-soft"
