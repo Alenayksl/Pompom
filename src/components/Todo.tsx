@@ -1,17 +1,17 @@
 "use client";
 
-import { useTodoPanel } from "@/context/TodoPanelContext";
+import { usePanels } from "@/context/PanelsContext";
 import { useTasks } from "@/context/TasksContext";
 
 export function Todo() {
   const { recentTasks } = useTasks();
-  const { isOpen, isClosing, togglePanel } = useTodoPanel();
-  const active = isOpen && !isClosing;
+  const { todo, togglePanel } = usePanels();
+  const active = todo.isOpen && !todo.isClosing;
 
   return (
     <button
       type="button"
-      onClick={togglePanel}
+      onClick={() => togglePanel("todo")}
       aria-expanded={active}
       className={`flex min-h-0 flex-1 flex-col rounded-2xl border bg-panel p-4 text-left shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40 ${
         active ? "border-sage bg-mist/30" : "border-border-soft"

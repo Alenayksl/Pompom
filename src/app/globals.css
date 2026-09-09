@@ -94,6 +94,33 @@ body {
   animation: todo-panel-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
+@keyframes notes-panel-in {
+  from {
+    width: 0;
+  }
+  to {
+    width: 36rem;
+  }
+}
+
+@keyframes notes-panel-out {
+  from {
+    width: 36rem;
+  }
+  to {
+    width: 0;
+  }
+}
+
+.notes-panel-enter {
+  width: 36rem;
+  animation: notes-panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.notes-panel-exit {
+  animation: notes-panel-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 .todo-task-exit {
   animation: todo-task-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;

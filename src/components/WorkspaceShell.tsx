@@ -1,23 +1,51 @@
 "use client";
 
 import { Sidebar } from "@/components/Sidebar";
+import { DraggablePanel } from "@/components/DraggablePanel";
+import { NotesPanel } from "@/components/NotesPanel";
 import { TodoPanel } from "@/components/TodoPanel";
+import { NotesProvider } from "@/context/NotesContext";
+import { PanelsProvider, usePanels, type PanelId } from "@/context/PanelsContext";
 import { TasksProvider } from "@/context/TasksContext";
-import {
-  TodoPanelProvider,
-  useTodoPanel,
-} from "@/context/TodoPanelContext";
+
+function PanelById({ id }: { id: PanelId }) {
+  const { todo, notes, closePanel } = usePanels();
+
+  if (id === "todo" && todo.isOpen) {
+    return (
+      <DraggablePanel id="todo">
+        <TodoPanel
+          isClosing={todo.isClosing}
+          onClose={() => closePanel("todo")}
+        />
+      </DraggablePanel>
+    );
+  }
+
+  if (id === "notes" && notes.isOpen) {
+    return (
+      <DraggablePanel id="notes">
+        <NotesPanel
+          isClosing={notes.isClosing}
+          onClose={() => closePanel("notes")}
+        />
+      </DraggablePanel>
+    );
+  }
+
+  return null;
+}
 
 function WorkspaceMain({ children }: { children: React.ReactNode }) {
-  const { isOpen, isClosing, closePanel } = useTodoPanel();
+  const { order } = usePanels();
 
   return (
     <div className="flex h-dvh w-full">
       <Sidebar />
       <div className="flex min-w-0 flex-1 overflow-hidden">
-        {isOpen ? (
-          <TodoPanel isClosing={isClosing} onClose={closePanel} />
-        ) : null}
+        {order.map((id) => (
+          <PanelById key={id} id={id} />
+        ))}
         {children}
       </div>
     </div>
@@ -27,9 +55,11 @@ function WorkspaceMain({ children }: { children: React.ReactNode }) {
 export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   return (
     <TasksProvider>
-      <TodoPanelProvider>
-        <WorkspaceMain>{children}</WorkspaceMain>
-      </TodoPanelProvider>
+      <NotesProvider>
+        <PanelsProvider>
+          <WorkspaceMain>{children}</WorkspaceMain>
+        </PanelsProvider>
+      </NotesProvider>
     </TasksProvider>
   );
 }
