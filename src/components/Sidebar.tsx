@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Account } from "@/components/Account";
 import { Notes } from "@/components/Notes";
 import { Pomodoro } from "@/components/Pomodoro";
 import { Todo } from "@/components/Todo";
@@ -17,6 +18,7 @@ export function Sidebar() {
         </Link>
       </header>
 
+      <Account />
       <Pomodoro />
       <Todo />
       <Notes />
