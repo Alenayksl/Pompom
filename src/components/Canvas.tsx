@@ -1,4 +1,11 @@
+"use client";
+
+import Image from "next/image";
+import { useFlowerIndex } from "@/context/FlowerContext";
+
 export function Canvas() {
+  const flowerIndex = useFlowerIndex();
+  const flowerProgress = (flowerIndex / 6) * 100;
   return (
     <section className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-cream">
       {/* Soft lo-fi atmosphere */}
@@ -27,11 +34,28 @@ export function Canvas() {
       <div className="relative z-10 flex flex-1 items-center justify-center px-8 pb-8">
         <div className="flex h-full w-full max-w-5xl items-center justify-center rounded-3xl border border-dashed border-sage bg-panel/60 backdrop-blur-[2px]">
           <div className="text-center">
-            <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-sage-soft/80 ring-4 ring-mist" />
-            <p className="text-base font-medium text-soil">Canvas</p>
-            <p className="mt-1 max-w-xs text-sm text-soil-muted">
-              Place for plants — empty skeleton for now
-            </p>
+            <Image
+              key={flowerIndex}
+              src={`/flowers/Pomodoro${flowerIndex}.png`}
+              alt={`Pomodoro flower ${flowerIndex}`}
+              width={256}
+              height={256}
+              className="mx-auto mb-4 h-64 w-64 object-contain"
+              style={{ imageRendering: "pixelated" }}
+            />
+            <div
+              className="mx-auto h-2 w-40 overflow-hidden rounded-full bg-sage-soft"
+              role="progressbar"
+              aria-label="Flower growth progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={flowerProgress}
+            >
+              <div
+                className="h-full rounded-full bg-moss transition-[width] duration-500"
+                style={{ width: `${flowerProgress}%` }}
+              />
+            </div>
           </div>
         </div>
       </div>

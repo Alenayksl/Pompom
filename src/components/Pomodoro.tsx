@@ -7,6 +7,7 @@ type TimerPhase = "focus" | "short-break" | "long-break" | "long-choice";
 const FOCUS_SECONDS = 25 * 60;
 const SHORT_BREAK_SECONDS = 5 * 60;
 const LONG_BREAK_OPTIONS = [15, 30] as const;
+const POMODOROS_BEFORE_LONG_BREAK = 8;
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -14,7 +15,17 @@ function formatTime(seconds: number) {
   return `${minutes}:${remainingSeconds}`;
 }
 
-export function Pomodoro() {
+type PomodoroProps = {
+  onFocusComplete?: () => void;
+  onLongBreakComplete?: () => void;
+  onReset?: () => void;
+};
+
+export function Pomodoro({
+  onFocusComplete,
+  onLongBreakComplete,
+  onReset,
+}: PomodoroProps) {
   const [phase, setPhase] = useState<TimerPhase>("focus");
   const [secondsLeft, setSecondsLeft] = useState(FOCUS_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
@@ -24,34 +35,50 @@ export function Pomodoro() {
     if (!isRunning || phase === "long-choice") return;
 
     const interval = window.setInterval(() => {
-      setSecondsLeft((seconds) => {
-        if (seconds > 1) return seconds - 1;
+      if (secondsLeft > 1) {
+        setSecondsLeft(secondsLeft - 1);
+        return;
+      }
 
-        if (phase === "focus") {
-          const nextCompleted = completedPomodoros + 1;
-          setCompletedPomodoros(nextCompleted);
-          if (nextCompleted === 4) {
-            setPhase("long-choice");
-            setIsRunning(false);
-            return 0;
-          }
-          setPhase("short-break");
-          return SHORT_BREAK_SECONDS;
+      if (phase === "focus") {
+        const nextCompleted = completedPomodoros + 1;
+        setCompletedPomodoros(nextCompleted);
+        onFocusComplete?.();
+        if (nextCompleted === POMODOROS_BEFORE_LONG_BREAK) {
+          setPhase("long-choice");
+          setIsRunning(false);
+          setSecondsLeft(0);
+          return;
         }
+        setPhase("short-break");
+        setSecondsLeft(SHORT_BREAK_SECONDS);
+        return;
+      }
 
-        setPhase("focus");
-        return FOCUS_SECONDS;
-      });
+      if (phase === "long-break") {
+        onLongBreakComplete?.();
+        setCompletedPomodoros(0);
+      }
+      setPhase("focus");
+      setSecondsLeft(FOCUS_SECONDS);
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [completedPomodoros, isRunning, phase]);
+  }, [
+    completedPomodoros,
+    isRunning,
+    onFocusComplete,
+    onLongBreakComplete,
+    phase,
+    secondsLeft,
+  ]);
 
   function resetTimer() {
     setIsRunning(false);
     setPhase("focus");
     setSecondsLeft(FOCUS_SECONDS);
     setCompletedPomodoros(0);
+    onReset?.();
   }
 
   function chooseLongBreak(minutes: number) {
@@ -116,7 +143,9 @@ export function Pomodoro() {
           </div>
         )}
 
-        <p className="text-xs text-soil-muted">{completedPomodoros}/4 pomodoros</p>
+        <p className="text-xs text-soil-muted">
+          {completedPomodoros}/{POMODOROS_BEFORE_LONG_BREAK} pomodoros
+        </p>
       </div>
     </section>
   );
