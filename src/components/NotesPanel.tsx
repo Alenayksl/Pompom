@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNotes } from "@/context/NotesContext";
 
 type NotesPanelProps = {
@@ -9,12 +9,20 @@ type NotesPanelProps = {
 };
 
 function formatUpdated(ts: number) {
-  return new Intl.DateTimeFormat(undefined, {
+  const date = new Date(ts);
+  const localeParts = new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(ts));
+  }).formatToParts(date);
+  const englishMonth = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+  }).format(date);
+
+  return localeParts
+    .map((part) => (part.type === "month" ? englishMonth : part.value))
+    .join("");
 }
 
 function previewLine(content: string) {
@@ -27,18 +35,8 @@ export function NotesPanel({ isClosing, onClose }: NotesPanelProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [exitingIds, setExitingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (notes.length === 0) {
-      setActiveId(null);
-      return;
-    }
-    if (!activeId || !notes.some((note) => note.id === activeId)) {
-      setActiveId(notes[0].id);
-    }
-  }, [notes, activeId]);
-
   const activeNote = useMemo(
-    () => notes.find((note) => note.id === activeId) ?? null,
+    () => notes.find((note) => note.id === activeId) ?? notes[0] ?? null,
     [notes, activeId],
   );
 
@@ -59,7 +57,6 @@ export function NotesPanel({ isClosing, onClose }: NotesPanelProps) {
         next.delete(id);
         return next;
       });
-      setActiveId((current) => (current === id ? null : current));
     }, 320);
   }
 

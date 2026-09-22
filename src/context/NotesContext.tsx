@@ -6,11 +6,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import type { Note } from "@/types/note";
-
-const STORAGE_KEY = "pompom-notes";
+import { createClient } from "@/lib/supabase/client";
 
 type NotesContextValue = {
   notes: Note[];
@@ -23,35 +23,55 @@ type NotesContextValue = {
 
 const NotesContext = createContext<NotesContextValue | null>(null);
 
-function loadNotes(): Note[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Note[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 function sortByUpdated(notes: Note[]) {
   return [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export function NotesProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+  const pendingUpdates = useRef<Record<string, Partial<Pick<Note, "title" | "content">>>>({});
+  const updateTimers = useRef<Record<string, number>>({});
+  const pendingCreates = useRef<Record<string, Promise<void>>>({});
 
   useEffect(() => {
-    setNotes(loadNotes());
-    setHydrated(true);
-  }, []);
+    let active = true;
 
-  useEffect(() => {
-    if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-  }, [notes, hydrated]);
+    async function loadNotes() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("notes")
+        .select("id, title, content, created_at, updated_at")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+
+      if (error) {
+        console.error("Could not load notes.", error);
+        return;
+      }
+
+      if (active && data) {
+        setNotes(
+          data.map((note) => ({
+            id: note.id,
+            title: note.title,
+            content: note.content,
+            createdAt: new Date(note.created_at).getTime(),
+            updatedAt: new Date(note.updated_at).getTime(),
+          })),
+        );
+      }
+    }
+
+    void loadNotes();
+    return () => {
+      active = false;
+    };
+  }, [supabase]);
 
   const createNote = useCallback(() => {
     const id = crypto.randomUUID();
@@ -66,8 +86,24 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       },
       ...prev,
     ]);
+    const createRequest = supabase.auth.getUser().then(async ({ data: { user }, error }) => {
+      if (error) {
+        console.error("Could not identify the current user for note creation.", error);
+        return;
+      }
+      if (!user) return;
+      const { error: insertError } = await supabase.from("notes").insert({
+        id,
+        user_id: user.id,
+        title: "Untitled",
+        content: "",
+      });
+      if (insertError) console.error("Could not save note.", insertError);
+    });
+    pendingCreates.current[id] = createRequest;
+    void createRequest.finally(() => delete pendingCreates.current[id]);
     return id;
-  }, []);
+  }, [supabase]);
 
   const updateNote = useCallback(
     (id: string, patch: Partial<Pick<Note, "title" | "content">>) => {
@@ -78,13 +114,39 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
             : note,
         ),
       );
+
+      pendingUpdates.current[id] = {
+        ...pendingUpdates.current[id],
+        ...patch,
+      };
+      const existingTimer = updateTimers.current[id];
+      if (existingTimer) window.clearTimeout(existingTimer);
+      updateTimers.current[id] = window.setTimeout(() => {
+        const pendingPatch = pendingUpdates.current[id];
+        delete pendingUpdates.current[id];
+        delete updateTimers.current[id];
+        if (!pendingPatch) return;
+
+        void (async () => {
+          await pendingCreates.current[id];
+          const { error } = await supabase
+            .from("notes")
+            .update({ ...pendingPatch, updated_at: new Date().toISOString() })
+            .eq("id", id);
+          if (error) console.error("Could not save note changes.", error);
+        })();
+      }, 400);
     },
-    [],
+    [supabase],
   );
 
-  const removeNote = useCallback((id: string) => {
-    setNotes((prev) => prev.filter((note) => note.id !== id));
-  }, []);
+  const removeNote = useCallback(
+    (id: string) => {
+      setNotes((prev) => prev.filter((note) => note.id !== id));
+      void supabase.from("notes").delete().eq("id", id);
+    },
+    [supabase],
+  );
 
   const getNote = useCallback(
     (id: string) => notes.find((note) => note.id === id),
