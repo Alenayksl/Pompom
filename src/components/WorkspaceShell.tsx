@@ -58,7 +58,7 @@ function WorkspaceMain({ children }: { children: React.ReactNode }) {
 
   return (
     <FlowerProvider flowerIndex={flowerIndex}>
-      <div className="flex h-dvh w-full">
+      <main className="flex h-dvh w-full">
         <Sidebar
           onFocusComplete={showNextFlower}
           onLongBreakComplete={() => setCompletedInCycle(0)}
@@ -70,7 +70,7 @@ function WorkspaceMain({ children }: { children: React.ReactNode }) {
           ))}
           {children}
         </div>
-      </div>
+      </main>
     </FlowerProvider>
   );
 }

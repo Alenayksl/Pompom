@@ -24,7 +24,7 @@ export function Sidebar({
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-soil-muted">
             Pompom
           </p>
-          <h1 className="mt-1 text-xl font-semibold text-soil">Workspace</h1>
+          <p className="mt-1 text-xl font-semibold text-soil">Workspace</p>
         </Link>
       </header>
 

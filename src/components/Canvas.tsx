@@ -27,7 +27,9 @@ export function Canvas() {
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-soil-muted">
             Garden
           </p>
-          <h2 className="text-lg font-semibold text-soil">Plant area</h2>
+          <h1 className="text-lg font-semibold text-soil">
+            pomPom: The Plant-Based Pomodoro Timer
+          </h1>
         </div>
       </header>
 
@@ -37,7 +39,7 @@ export function Canvas() {
             <Image
               key={flowerIndex}
               src={`/flowers/Pomodoro${flowerIndex}.png`}
-              alt={`Pomodoro flower ${flowerIndex}`}
+              alt={`Pomodoro flower at growth stage ${flowerIndex + 1}, growing during a 25-minute focus session`}
               width={256}
               height={256}
               className="mx-auto mb-4 h-64 w-64 object-contain"
