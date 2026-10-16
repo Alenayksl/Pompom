@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type DragEvent, type ReactNode } from "react";
-import { usePanels, type PanelId } from "@/context/PanelsContext";
+import { isPanelId, usePanels, type PanelId } from "@/context/PanelsContext";
 
 type DraggablePanelProps = {
   id: PanelId;
@@ -37,9 +37,9 @@ export function DraggablePanel({ id, children }: DraggablePanelProps) {
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
-    const fromId = e.dataTransfer.getData("text/panel-id") as PanelId;
+    const fromId = e.dataTransfer.getData("text/panel-id");
     setIsOver(false);
-    if (fromId === "todo" || fromId === "notes") {
+    if (isPanelId(fromId)) {
       movePanel(fromId, id);
     }
   }
