@@ -5,7 +5,8 @@ import { useNotes } from "@/context/NotesContext";
 
 export function Notes() {
   const { recentNotes } = useNotes();
-  const { notes, togglePanel } = usePanels();
+  const { panels, togglePanel } = usePanels();
+  const { notes } = panels;
   const active = notes.isOpen && !notes.isClosing;
 
   return (
@@ -13,7 +14,7 @@ export function Notes() {
       type="button"
       onClick={() => togglePanel("notes")}
       aria-expanded={active}
-      className={`flex min-h-0 flex-1 flex-col rounded-2xl border bg-panel p-4 text-left shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40 ${
+      className={`flex shrink-0 flex-col rounded-2xl border bg-panel p-4 text-left shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40 ${
         active ? "border-sage bg-mist/30" : "border-border-soft"
       }`}
     >
@@ -25,11 +26,9 @@ export function Notes() {
       </div>
 
       {recentNotes.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-sage bg-mist/50 px-3 py-6">
-          <p className="text-center text-sm text-soil-muted">
-            No notes yet — click to write
-          </p>
-        </div>
+        <p className="line-clamp-2 min-h-0 overflow-hidden text-xs leading-snug text-soil-muted">
+          No notes yet — click to write
+        </p>
       ) : (
         <ul className="flex flex-1 flex-col gap-2 overflow-hidden">
           {recentNotes.map((note) => (

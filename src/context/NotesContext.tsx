@@ -154,7 +154,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   );
 
   const recentNotes = useMemo(
-    () => sortByUpdated(notes).slice(0, 3),
+    () => sortByUpdated(notes).slice(0, 1),
     [notes],
   );
 
