@@ -2,19 +2,16 @@
 
 import { useCallback, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { CalendarPanel } from "@/components/CalendarPanel";
 import { DraggablePanel } from "@/components/DraggablePanel";
 import { NotesPanel } from "@/components/NotesPanel";
 import { TodoPanel } from "@/components/TodoPanel";
-import { CalendarProvider } from "@/context/CalendarContext";
 import { NotesProvider } from "@/context/NotesContext";
 import { PanelsProvider, usePanels, type PanelId } from "@/context/PanelsContext";
 import { TasksProvider } from "@/context/TasksContext";
 import { FlowerProvider } from "@/context/FlowerContext";
 
 function PanelById({ id }: { id: PanelId }) {
-  const { panels, closePanel } = usePanels();
-  const { todo, notes, calendar } = panels;
+  const { todo, notes, closePanel } = usePanels();
 
   if (id === "todo" && todo.isOpen) {
     return (
@@ -33,17 +30,6 @@ function PanelById({ id }: { id: PanelId }) {
         <NotesPanel
           isClosing={notes.isClosing}
           onClose={() => closePanel("notes")}
-        />
-      </DraggablePanel>
-    );
-  }
-
-  if (id === "calendar" && calendar.isOpen) {
-    return (
-      <DraggablePanel id="calendar">
-        <CalendarPanel
-          isClosing={calendar.isClosing}
-          onClose={() => closePanel("calendar")}
         />
       </DraggablePanel>
     );
@@ -93,11 +79,9 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   return (
     <TasksProvider>
       <NotesProvider>
-        <CalendarProvider>
-          <PanelsProvider>
-            <WorkspaceMain>{children}</WorkspaceMain>
-          </PanelsProvider>
-        </CalendarProvider>
+        <PanelsProvider>
+          <WorkspaceMain>{children}</WorkspaceMain>
+        </PanelsProvider>
       </NotesProvider>
     </TasksProvider>
   );

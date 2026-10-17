@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Account } from "@/components/Account";
-import { Calendar } from "@/components/Calendar";
 import { Notes } from "@/components/Notes";
 import { Pomodoro } from "@/components/Pomodoro";
 import { Todo } from "@/components/Todo";
@@ -19,7 +18,7 @@ export function Sidebar({
   onReset,
 }: SidebarProps) {
   return (
-    <aside className="flex h-full w-80 shrink-0 flex-col gap-4 overflow-y-auto [scrollbar-color:var(--sage)_transparent] [scrollbar-width:thin] border-r border-border-soft bg-sidebar p-5">
+    <aside className="flex h-full w-80 shrink-0 flex-col gap-4 border-r border-border-soft bg-sidebar p-5">
       <header className="pb-1">
         <Link href="/" className="block">
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-soil-muted">
@@ -37,7 +36,6 @@ export function Sidebar({
       />
       <Todo />
       <Notes />
-      <Calendar />
     </aside>
   );
 }

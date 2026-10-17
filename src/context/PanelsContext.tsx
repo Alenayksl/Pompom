@@ -13,11 +13,8 @@ import { usePathname } from "next/navigation";
 
 const PANEL_MS = 320;
 const ORDER_KEY = "pompom-panel-order";
-const MAX_OPEN_PANELS = 2;
 
-export const PANEL_IDS = ["todo", "notes", "calendar"] as const;
-
-export type PanelId = (typeof PANEL_IDS)[number];
+export type PanelId = "todo" | "notes";
 
 type PanelState = {
   isOpen: boolean;
@@ -25,7 +22,8 @@ type PanelState = {
 };
 
 type PanelsContextValue = {
-  panels: Record<PanelId, PanelState>;
+  todo: PanelState;
+  notes: PanelState;
   order: PanelId[];
   openPanel: (id: PanelId) => void;
   closePanel: (id: PanelId) => void;
@@ -35,52 +33,42 @@ type PanelsContextValue = {
 
 const PanelsContext = createContext<PanelsContextValue | null>(null);
 
-const CLOSED: PanelState = { isOpen: false, isClosing: false };
-
-export function isPanelId(value: unknown): value is PanelId {
-  return PANEL_IDS.includes(value as PanelId);
-}
-
 function loadOrder(): PanelId[] {
-  const fallback = [...PANEL_IDS];
-  if (typeof window === "undefined") return fallback;
+  if (typeof window === "undefined") return ["todo", "notes"];
   try {
     const raw = localStorage.getItem(ORDER_KEY);
-    if (!raw) return fallback;
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return fallback;
-    // Keep the saved order, then append panels added since it was saved
-    const saved = [...new Set(parsed.filter(isPanelId))];
-    return [...saved, ...PANEL_IDS.filter((id) => !saved.includes(id))];
+    if (!raw) return ["todo", "notes"];
+    const parsed = JSON.parse(raw) as PanelId[];
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === 2 &&
+      parsed.includes("todo") &&
+      parsed.includes("notes")
+    ) {
+      return parsed;
+    }
   } catch {
-    return fallback;
+    /* ignore */
   }
-}
-
-function swap(order: PanelId[], a: PanelId, b: PanelId) {
-  const next = [...order];
-  const aIndex = next.indexOf(a);
-  const bIndex = next.indexOf(b);
-  if (aIndex < 0 || bIndex < 0) return order;
-  next[aIndex] = b;
-  next[bIndex] = a;
-  return next;
+  return ["todo", "notes"];
 }
 
 export function PanelsProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [panels, setPanels] = useState<Record<PanelId, PanelState>>({
-    todo: CLOSED,
-    notes: CLOSED,
-    calendar: CLOSED,
+  const [todo, setTodo] = useState<PanelState>({
+    isOpen: false,
+    isClosing: false,
   });
-  const [order, setOrder] = useState<PanelId[]>([...PANEL_IDS]);
+  const [notes, setNotes] = useState<PanelState>({
+    isOpen: false,
+    isClosing: false,
+  });
+  const [order, setOrder] = useState<PanelId[]>(["todo", "notes"]);
 
-  // Open (non-closing) panels, oldest first — the oldest one is replaced
-  // when a panel beyond the limit is opened.
-  const openStackRef = useRef<PanelId[]>([]);
-  const closingRef = useRef<Set<PanelId>>(new Set());
-  const timersRef = useRef<Map<PanelId, number>>(new Map());
+  const todoClosingRef = useRef(false);
+  const notesClosingRef = useRef(false);
+  const todoTimerRef = useRef<number | null>(null);
+  const notesTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     setOrder(loadOrder());
@@ -90,68 +78,71 @@ export function PanelsProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(ORDER_KEY, JSON.stringify(order));
   }, [order]);
 
+  // Deep links open a panel without closing the other
   useEffect(() => {
-    const timers = timersRef.current;
+    if (pathname === "/todo") {
+      todoClosingRef.current = false;
+      setTodo({ isOpen: true, isClosing: false });
+    }
+    if (pathname === "/notes") {
+      notesClosingRef.current = false;
+      setNotes({ isOpen: true, isClosing: false });
+    }
+  }, [pathname]);
+
+  useEffect(() => {
     return () => {
-      timers.forEach((timer) => window.clearTimeout(timer));
+      if (todoTimerRef.current !== null) window.clearTimeout(todoTimerRef.current);
+      if (notesTimerRef.current !== null) window.clearTimeout(notesTimerRef.current);
     };
   }, []);
 
-  const setPanel = useCallback((id: PanelId, state: PanelState) => {
-    setPanels((prev) => ({ ...prev, [id]: state }));
+  const openPanel = useCallback((id: PanelId) => {
+    if (id === "todo") {
+      if (todoClosingRef.current) return;
+      setTodo({ isOpen: true, isClosing: false });
+      return;
+    }
+    if (notesClosingRef.current) return;
+    setNotes({ isOpen: true, isClosing: false });
   }, []);
 
-  const closePanel = useCallback(
-    (id: PanelId) => {
-      if (!openStackRef.current.includes(id)) return;
-      openStackRef.current = openStackRef.current.filter((p) => p !== id);
-      closingRef.current.add(id);
-      setPanel(id, { isOpen: true, isClosing: true });
-
-      const timer = window.setTimeout(() => {
-        setPanel(id, CLOSED);
-        closingRef.current.delete(id);
-        timersRef.current.delete(id);
+  const closePanel = useCallback((id: PanelId) => {
+    if (id === "todo") {
+      if (!todo.isOpen || todoClosingRef.current) return;
+      todoClosingRef.current = true;
+      setTodo({ isOpen: true, isClosing: true });
+      todoTimerRef.current = window.setTimeout(() => {
+        setTodo({ isOpen: false, isClosing: false });
+        todoClosingRef.current = false;
+        todoTimerRef.current = null;
       }, PANEL_MS);
-      timersRef.current.set(id, timer);
-    },
-    [setPanel],
-  );
+      return;
+    }
 
-  const openPanel = useCallback(
-    (id: PanelId) => {
-      if (closingRef.current.has(id)) return;
-      if (openStackRef.current.includes(id)) return;
-
-      if (openStackRef.current.length >= MAX_OPEN_PANELS) {
-        // Replace the oldest open panel and take its place on screen
-        const replaced = openStackRef.current[0];
-        closePanel(replaced);
-        setOrder((prev) => swap(prev, id, replaced));
-      }
-
-      openStackRef.current = [...openStackRef.current, id];
-      setPanel(id, { isOpen: true, isClosing: false });
-    },
-    [closePanel, setPanel],
-  );
+    if (!notes.isOpen || notesClosingRef.current) return;
+    notesClosingRef.current = true;
+    setNotes({ isOpen: true, isClosing: true });
+    notesTimerRef.current = window.setTimeout(() => {
+      setNotes({ isOpen: false, isClosing: false });
+      notesClosingRef.current = false;
+      notesTimerRef.current = null;
+    }, PANEL_MS);
+  }, [todo.isOpen, notes.isOpen]);
 
   const togglePanel = useCallback(
     (id: PanelId) => {
-      if (openStackRef.current.includes(id)) {
+      const state = id === "todo" ? todo : notes;
+      const closing =
+        id === "todo" ? todoClosingRef.current : notesClosingRef.current;
+      if (state.isOpen && !closing) {
         closePanel(id);
         return;
       }
       openPanel(id);
     },
-    [closePanel, openPanel],
+    [todo, notes, closePanel, openPanel],
   );
-
-  // Deep links open a panel without closing the others (within the limit)
-  useEffect(() => {
-    const id = pathname.replace(/^\//, "");
-    if (isPanelId(id)) openPanel(id);
-  }, [pathname, openPanel]);
 
   const movePanel = useCallback((fromId: PanelId, toId: PanelId) => {
     if (fromId === toId) return;
@@ -168,14 +159,15 @@ export function PanelsProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(
     () => ({
-      panels,
+      todo,
+      notes,
       order,
       openPanel,
       closePanel,
       togglePanel,
       movePanel,
     }),
-    [panels, order, openPanel, closePanel, togglePanel, movePanel],
+    [todo, notes, order, openPanel, closePanel, togglePanel, movePanel],
   );
 
   return (

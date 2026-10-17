@@ -126,7 +126,7 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
     () =>
       [...tasks]
         .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, 1),
+        .slice(0, 3),
     [tasks],
   );
 
