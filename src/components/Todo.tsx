@@ -5,8 +5,7 @@ import { useTasks } from "@/context/TasksContext";
 
 export function Todo() {
   const { recentTasks } = useTasks();
-  const { panels, togglePanel } = usePanels();
-  const { todo } = panels;
+  const { todo, togglePanel } = usePanels();
   const active = todo.isOpen && !todo.isClosing;
 
   return (
@@ -14,7 +13,7 @@ export function Todo() {
       type="button"
       onClick={() => togglePanel("todo")}
       aria-expanded={active}
-      className={`flex shrink-0 flex-col rounded-2xl border bg-panel p-4 text-left shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40 ${
+      className={`flex min-h-0 flex-1 flex-col rounded-2xl border bg-panel p-4 text-left shadow-[0_1px_0_rgba(92,107,82,0.04)] transition-colors hover:border-sage hover:bg-mist/40 ${
         active ? "border-sage bg-mist/30" : "border-border-soft"
       }`}
     >
@@ -26,9 +25,11 @@ export function Todo() {
       </div>
 
       {recentTasks.length === 0 ? (
-        <p className="line-clamp-2 min-h-0 overflow-hidden text-xs leading-snug text-soil-muted">
-          No tasks yet — click to add some
-        </p>
+        <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-sage bg-mist/50 px-3 py-6">
+          <p className="text-center text-sm text-soil-muted">
+            No tasks yet — click to add some
+          </p>
+        </div>
       ) : (
         <ul className="flex flex-1 flex-col gap-2 overflow-hidden">
           {recentTasks.map((task) => (
