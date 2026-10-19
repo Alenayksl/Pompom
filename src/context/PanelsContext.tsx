@@ -16,7 +16,7 @@ const PANEL_MS = 320;
 const ORDER_KEY = "pompom-panel-order";
 const MAX_OPEN_PANELS = 2;
 
-export const PANEL_IDS = ["todo", "notes", "calendar"] as const;
+export const PANEL_IDS = ["todo", "notes", "calendar", "pomodoro"] as const;
 
 export type PanelId = (typeof PANEL_IDS)[number];
 
@@ -74,6 +74,7 @@ export function PanelsProvider({ children }: { children: React.ReactNode }) {
     todo: CLOSED,
     notes: CLOSED,
     calendar: CLOSED,
+    pomodoro: CLOSED,
   });
   const [order, setOrder] = useState<PanelId[]>([...PANEL_IDS]);
 

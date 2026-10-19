@@ -5,6 +5,7 @@ import { Account } from "@/components/Account";
 import { Calendar } from "@/components/Calendar";
 import { Notes } from "@/components/Notes";
 import { Pomodoro } from "@/components/Pomodoro";
+import { PomodoroSettings } from "@/components/PomodoroSettings";
 import { Todo } from "@/components/Todo";
 
 type SidebarProps = {
@@ -35,6 +36,7 @@ export function Sidebar({
         onLongBreakComplete={onLongBreakComplete}
         onReset={onReset}
       />
+      <PomodoroSettings />
       <Todo />
       <Notes />
       <Calendar />

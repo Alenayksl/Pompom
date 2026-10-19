@@ -1,13 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  playBreakCompleteSound,
+  playFocusCompleteSound,
+  unlockAudio,
+} from "@/lib/sounds";
+import { usePomodoroSettings } from "@/context/PomodoroSettingsContext";
 
 type TimerPhase = "focus" | "short-break" | "long-break" | "long-choice";
 
-const FOCUS_SECONDS = 25 * 60;
-const SHORT_BREAK_SECONDS = 5 * 60;
-const LONG_BREAK_OPTIONS = [15, 30] as const;
+const PHASE_TITLES: Record<Exclude<TimerPhase, "long-choice">, string> = {
+  focus: "Focus",
+  "short-break": "Short break",
+  "long-break": "Long break",
+};
+
 const POMODOROS_BEFORE_LONG_BREAK = 8;
+
+function deadlineIn(seconds: number) {
+  return Date.now() + seconds * 1000;
+}
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -26,62 +39,119 @@ export function Pomodoro({
   onLongBreakComplete,
   onReset,
 }: PomodoroProps) {
+  const { activePreset } = usePomodoroSettings();
+  const focusSeconds = activePreset.focusMinutes * 60;
+  const shortBreakSeconds = activePreset.shortBreakMinutes * 60;
+
   const [phase, setPhase] = useState<TimerPhase>("focus");
-  const [secondsLeft, setSecondsLeft] = useState(FOCUS_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState(focusSeconds);
   const [isRunning, setIsRunning] = useState(false);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
+  // Wall-clock end of the running phase; background tabs throttle timers, so we
+  // derive the remaining time from this instead of counting ticks.
+  const endsAtRef = useRef<number | null>(null);
+
+  // A new preset takes effect immediately only if the focus timer hasn't been
+  // started yet; otherwise it applies from the next phase.
+  const [syncedFocusSeconds, setSyncedFocusSeconds] = useState(focusSeconds);
+  if (focusSeconds !== syncedFocusSeconds) {
+    setSyncedFocusSeconds(focusSeconds);
+    if (!isRunning && phase === "focus" && secondsLeft === syncedFocusSeconds) {
+      setSecondsLeft(focusSeconds);
+    }
+  }
 
   useEffect(() => {
     if (!isRunning || phase === "long-choice") return;
 
     const interval = window.setInterval(() => {
-      if (secondsLeft > 1) {
-        setSecondsLeft(secondsLeft - 1);
+      const endsAt = endsAtRef.current;
+      if (endsAt === null) return;
+
+      const remaining = Math.ceil((endsAt - Date.now()) / 1000);
+      if (remaining > 0) {
+        setSecondsLeft(remaining);
         return;
       }
 
       if (phase === "focus") {
+        playFocusCompleteSound();
         const nextCompleted = completedPomodoros + 1;
         setCompletedPomodoros(nextCompleted);
         onFocusComplete?.();
         if (nextCompleted === POMODOROS_BEFORE_LONG_BREAK) {
+          endsAtRef.current = null;
           setPhase("long-choice");
           setIsRunning(false);
           setSecondsLeft(0);
           return;
         }
+        endsAtRef.current = deadlineIn(shortBreakSeconds);
         setPhase("short-break");
-        setSecondsLeft(SHORT_BREAK_SECONDS);
+        setSecondsLeft(shortBreakSeconds);
         return;
       }
 
+      playBreakCompleteSound();
       if (phase === "long-break") {
         onLongBreakComplete?.();
         setCompletedPomodoros(0);
       }
+      endsAtRef.current = deadlineIn(focusSeconds);
       setPhase("focus");
-      setSecondsLeft(FOCUS_SECONDS);
-    }, 1000);
+      setSecondsLeft(focusSeconds);
+    }, 250);
 
     return () => window.clearInterval(interval);
   }, [
     completedPomodoros,
+    focusSeconds,
     isRunning,
     onFocusComplete,
     onLongBreakComplete,
     phase,
-    secondsLeft,
+    shortBreakSeconds,
   ]);
 
+  const isIdle = !isRunning && phase === "focus" && secondsLeft === focusSeconds;
+
+  useEffect(() => {
+    if (isIdle) return;
+
+    const originalTitle = document.title;
+    document.title =
+      phase === "long-choice"
+        ? `Long break time! | pomPom`
+        : `${isRunning ? "" : "⏸ "}${formatTime(secondsLeft)} · ${PHASE_TITLES[phase]} | pomPom`;
+
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [isIdle, isRunning, phase, secondsLeft]);
+
+  function toggleRunning() {
+    if (isRunning) {
+      endsAtRef.current = null;
+      setIsRunning(false);
+      return;
+    }
+    unlockAudio();
+    endsAtRef.current = deadlineIn(secondsLeft);
+    setIsRunning(true);
+  }
+
   function resetTimer() {
+    endsAtRef.current = null;
     setIsRunning(false);
     setPhase("focus");
-    setSecondsLeft(FOCUS_SECONDS);
+    setSecondsLeft(focusSeconds);
     setCompletedPomodoros(0);
     onReset?.();
   }
 
   function chooseLongBreak(minutes: number) {
+    unlockAudio();
+    endsAtRef.current = deadlineIn(minutes * 60);
     setPhase("long-break");
     setSecondsLeft(minutes * 60);
     setIsRunning(true);
@@ -97,27 +167,40 @@ export function Pomodoro({
           ? "Long break"
           : "Choose a long break";
 
+  // Focus stays green; breaks (and the long-break choice) turn butter yellow
+  const isBreak = phase !== "focus";
+
   return (
     <section className="rounded-2xl border border-border-soft bg-panel p-4 shadow-[0_1px_0_rgba(92,107,82,0.04)]">
       <h2 className="mb-3 text-sm font-semibold text-moss-deep">Pomodoro</h2>
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-sage-soft bg-mist">
+        <div
+          className={`flex h-28 w-28 items-center justify-center rounded-full border-4 transition-colors duration-500 ${
+            isBreak ? "border-butter bg-butter-soft" : "border-sage-soft bg-mist"
+          }`}
+        >
           <div className="text-center">
             <p className="text-2xl font-semibold tabular-nums tracking-tight text-soil">{formatTime(secondsLeft)}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-soil-muted">{phaseLabel}</p>
+            <p
+              className={`text-[10px] font-medium uppercase tracking-wider ${
+                isBreak ? "text-honey-deep" : "text-soil-muted"
+              }`}
+            >
+              {phaseLabel}
+            </p>
           </div>
         </div>
 
         {phase === "long-choice" ? (
-          <div className="w-full rounded-xl bg-sage-soft/60 p-3 text-center">
-            <p className="mb-2 text-xs font-medium text-soil">Four pomodoros complete. Choose a long break.</p>
+          <div className="w-full rounded-xl bg-butter-soft p-3 text-center">
+            <p className="mb-2 text-xs font-medium text-soil">{POMODOROS_BEFORE_LONG_BREAK} pomodoros complete. Choose a long break.</p>
             <div className="flex gap-2">
-              {LONG_BREAK_OPTIONS.map((minutes) => (
+              {activePreset.longBreakOptions.map((minutes) => (
                 <button
                   key={minutes}
                   type="button"
                   onClick={() => chooseLongBreak(minutes)}
-                  className="flex-1 rounded-xl bg-moss px-2 py-2 text-sm font-medium text-cream transition-colors hover:bg-moss-deep"
+                  className="flex-1 rounded-xl bg-butter px-2 py-2 text-sm font-medium text-honey-deep transition-colors hover:bg-honey hover:text-panel"
                 >
                   {minutes} min
                 </button>
@@ -128,8 +211,12 @@ export function Pomodoro({
           <div className="flex w-full gap-2">
             <button
               type="button"
-              onClick={() => setIsRunning((running) => !running)}
-              className="flex-1 rounded-xl bg-moss px-3 py-2 text-sm font-medium text-cream transition-colors hover:bg-moss-deep"
+              onClick={toggleRunning}
+              className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                isBreak
+                  ? "bg-butter text-honey-deep hover:bg-honey hover:text-panel"
+                  : "bg-moss text-cream hover:bg-moss-deep"
+              }`}
             >
               {isRunning ? "Pause" : "Start"}
             </button>
