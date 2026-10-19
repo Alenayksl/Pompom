@@ -5,16 +5,18 @@ import { Sidebar } from "@/components/Sidebar";
 import { CalendarPanel } from "@/components/CalendarPanel";
 import { DraggablePanel } from "@/components/DraggablePanel";
 import { NotesPanel } from "@/components/NotesPanel";
+import { PomodoroSettingsPanel } from "@/components/PomodoroSettingsPanel";
 import { TodoPanel } from "@/components/TodoPanel";
 import { CalendarProvider } from "@/context/CalendarContext";
 import { NotesProvider } from "@/context/NotesContext";
 import { PanelsProvider, usePanels, type PanelId } from "@/context/PanelsContext";
+import { PomodoroSettingsProvider } from "@/context/PomodoroSettingsContext";
 import { TasksProvider } from "@/context/TasksContext";
 import { FlowerProvider } from "@/context/FlowerContext";
 
 function PanelById({ id }: { id: PanelId }) {
   const { panels, closePanel } = usePanels();
-  const { todo, notes, calendar } = panels;
+  const { todo, notes, calendar, pomodoro } = panels;
 
   if (id === "todo" && todo.isOpen) {
     return (
@@ -44,6 +46,17 @@ function PanelById({ id }: { id: PanelId }) {
         <CalendarPanel
           isClosing={calendar.isClosing}
           onClose={() => closePanel("calendar")}
+        />
+      </DraggablePanel>
+    );
+  }
+
+  if (id === "pomodoro" && pomodoro.isOpen) {
+    return (
+      <DraggablePanel id="pomodoro">
+        <PomodoroSettingsPanel
+          isClosing={pomodoro.isClosing}
+          onClose={() => closePanel("pomodoro")}
         />
       </DraggablePanel>
     );
@@ -95,7 +108,9 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       <NotesProvider>
         <CalendarProvider>
           <PanelsProvider>
-            <WorkspaceMain>{children}</WorkspaceMain>
+            <PomodoroSettingsProvider>
+              <WorkspaceMain>{children}</WorkspaceMain>
+            </PomodoroSettingsProvider>
           </PanelsProvider>
         </CalendarProvider>
       </NotesProvider>

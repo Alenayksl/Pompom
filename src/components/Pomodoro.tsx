@@ -6,6 +6,7 @@ import {
   playFocusCompleteSound,
   unlockAudio,
 } from "@/lib/sounds";
+import { usePomodoroSettings } from "@/context/PomodoroSettingsContext";
 
 type TimerPhase = "focus" | "short-break" | "long-break" | "long-choice";
 
@@ -15,9 +16,6 @@ const PHASE_TITLES: Record<Exclude<TimerPhase, "long-choice">, string> = {
   "long-break": "Long break",
 };
 
-const FOCUS_SECONDS = 25 * 60;
-const SHORT_BREAK_SECONDS = 5 * 60;
-const LONG_BREAK_OPTIONS = [15, 30] as const;
 const POMODOROS_BEFORE_LONG_BREAK = 8;
 
 function deadlineIn(seconds: number) {
@@ -41,13 +39,27 @@ export function Pomodoro({
   onLongBreakComplete,
   onReset,
 }: PomodoroProps) {
+  const { activePreset } = usePomodoroSettings();
+  const focusSeconds = activePreset.focusMinutes * 60;
+  const shortBreakSeconds = activePreset.shortBreakMinutes * 60;
+
   const [phase, setPhase] = useState<TimerPhase>("focus");
-  const [secondsLeft, setSecondsLeft] = useState(FOCUS_SECONDS);
+  const [secondsLeft, setSecondsLeft] = useState(focusSeconds);
   const [isRunning, setIsRunning] = useState(false);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
   // Wall-clock end of the running phase; background tabs throttle timers, so we
   // derive the remaining time from this instead of counting ticks.
   const endsAtRef = useRef<number | null>(null);
+
+  // A new preset takes effect immediately only if the focus timer hasn't been
+  // started yet; otherwise it applies from the next phase.
+  const [syncedFocusSeconds, setSyncedFocusSeconds] = useState(focusSeconds);
+  if (focusSeconds !== syncedFocusSeconds) {
+    setSyncedFocusSeconds(focusSeconds);
+    if (!isRunning && phase === "focus" && secondsLeft === syncedFocusSeconds) {
+      setSecondsLeft(focusSeconds);
+    }
+  }
 
   useEffect(() => {
     if (!isRunning || phase === "long-choice") return;
@@ -74,9 +86,9 @@ export function Pomodoro({
           setSecondsLeft(0);
           return;
         }
-        endsAtRef.current = deadlineIn(SHORT_BREAK_SECONDS);
+        endsAtRef.current = deadlineIn(shortBreakSeconds);
         setPhase("short-break");
-        setSecondsLeft(SHORT_BREAK_SECONDS);
+        setSecondsLeft(shortBreakSeconds);
         return;
       }
 
@@ -85,21 +97,23 @@ export function Pomodoro({
         onLongBreakComplete?.();
         setCompletedPomodoros(0);
       }
-      endsAtRef.current = deadlineIn(FOCUS_SECONDS);
+      endsAtRef.current = deadlineIn(focusSeconds);
       setPhase("focus");
-      setSecondsLeft(FOCUS_SECONDS);
+      setSecondsLeft(focusSeconds);
     }, 250);
 
     return () => window.clearInterval(interval);
   }, [
     completedPomodoros,
+    focusSeconds,
     isRunning,
     onFocusComplete,
     onLongBreakComplete,
     phase,
+    shortBreakSeconds,
   ]);
 
-  const isIdle = !isRunning && phase === "focus" && secondsLeft === FOCUS_SECONDS;
+  const isIdle = !isRunning && phase === "focus" && secondsLeft === focusSeconds;
 
   useEffect(() => {
     if (isIdle) return;
@@ -130,7 +144,7 @@ export function Pomodoro({
     endsAtRef.current = null;
     setIsRunning(false);
     setPhase("focus");
-    setSecondsLeft(FOCUS_SECONDS);
+    setSecondsLeft(focusSeconds);
     setCompletedPomodoros(0);
     onReset?.();
   }
@@ -166,9 +180,9 @@ export function Pomodoro({
 
         {phase === "long-choice" ? (
           <div className="w-full rounded-xl bg-sage-soft/60 p-3 text-center">
-            <p className="mb-2 text-xs font-medium text-soil">Four pomodoros complete. Choose a long break.</p>
+            <p className="mb-2 text-xs font-medium text-soil">{POMODOROS_BEFORE_LONG_BREAK} pomodoros complete. Choose a long break.</p>
             <div className="flex gap-2">
-              {LONG_BREAK_OPTIONS.map((minutes) => (
+              {activePreset.longBreakOptions.map((minutes) => (
                 <button
                   key={minutes}
                   type="button"
