@@ -170,33 +170,20 @@ export function CalendarPanel({ isClosing, onClose }: CalendarPanelProps) {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
-            {status === "unconfigured" ? (
-              <p className="text-sm text-soil-muted">
-                Google Calendar is not configured. Add{" "}
-                <code className="rounded bg-mist px-1 py-0.5 text-xs">
-                  NEXT_PUBLIC_GOOGLE_CLIENT_ID
-                </code>{" "}
-                to <code className="rounded bg-mist px-1 py-0.5 text-xs">.env.local</code>{" "}
-                and restart the dev server.
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-soil-muted">
-                  Connect your Google Calendar to see this week&apos;s events
-                  next to your focus sessions. Pompom only reads your events.
-                </p>
-                <button
-                  type="button"
-                  onClick={connect}
-                  disabled={status !== "disconnected"}
-                  className="rounded-xl bg-moss px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-moss-deep disabled:opacity-60"
-                >
-                  {status === "disconnected"
-                    ? "Connect Google Calendar"
-                    : "Connecting..."}
-                </button>
-              </>
-            )}
+            <p className="text-sm text-soil-muted">
+              Connect your Google Calendar to see this week&apos;s events next
+              to your focus sessions. Pompom only reads your events.
+            </p>
+            <button
+              type="button"
+              onClick={connect}
+              disabled={status !== "disconnected"}
+              className="rounded-xl bg-moss px-4 py-2 text-sm font-medium text-cream transition-colors hover:bg-moss-deep disabled:opacity-60"
+            >
+              {status === "disconnected"
+                ? "Connect Google Calendar"
+                : "Connecting..."}
+            </button>
           </div>
         )}
       </section>

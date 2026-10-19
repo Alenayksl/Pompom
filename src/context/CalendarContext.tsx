@@ -16,6 +16,10 @@ const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 const EVENTS_URL =
   "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 export const CALENDAR_TOKEN_KEY = "pompom-google-calendar-token";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+// Without a client ID the calendar is left out of the UI entirely
+export const isCalendarConfigured = Boolean(GOOGLE_CLIENT_ID);
 const DAYS_AHEAD = 7;
 
 // Minimal typings for the Google Identity Services token client
@@ -54,7 +58,6 @@ type StoredToken = {
 };
 
 export type CalendarStatus =
-  | "unconfigured"
   | "loading"
   | "disconnected"
   | "connecting"
@@ -131,9 +134,8 @@ function toEvent(item: GoogleCalendarApiEvent): CalendarEvent | null {
 }
 
 export function CalendarProvider({ children }: { children: React.ReactNode }) {
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
   const [status, setStatus] = useState<CalendarStatus>(
-    clientId ? "loading" : "unconfigured",
+    isCalendarConfigured ? "loading" : "disconnected",
   );
   const [token, setToken] = useState<StoredToken | null>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -151,6 +153,7 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const clientId = GOOGLE_CLIENT_ID;
     if (!clientId) return;
     let cancelled = false;
 
@@ -202,7 +205,7 @@ export function CalendarProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [clientId]);
+  }, []);
 
   // Each (token, reload) pair is one fetch; it is in flight until it lands
   const fetchKey = token ? `${token.accessToken}:${reloadCount}` : null;

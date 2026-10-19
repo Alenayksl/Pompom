@@ -1,6 +1,6 @@
 "use client";
 
-import { useCalendar } from "@/context/CalendarContext";
+import { isCalendarConfigured, useCalendar } from "@/context/CalendarContext";
 import { usePanels } from "@/context/PanelsContext";
 import { formatEventTime } from "@/components/CalendarPanel";
 
@@ -11,7 +11,9 @@ export function Calendar() {
   const active = calendar.isOpen && !calendar.isClosing;
 
   let emptyMessage: string | null = null;
-  if (status === "unconfigured" || status === "disconnected") {
+  if (!isCalendarConfigured) return null;
+
+  if (status === "disconnected") {
     emptyMessage = "Not connected — click to link Google Calendar";
   } else if (status === "loading" || status === "connecting") {
     emptyMessage = "Connecting...";

@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { usePathname } from "next/navigation";
+import { isCalendarConfigured } from "@/context/CalendarContext";
 
 const PANEL_MS = 320;
 const ORDER_KEY = "pompom-panel-order";
@@ -120,6 +121,7 @@ export function PanelsProvider({ children }: { children: React.ReactNode }) {
 
   const openPanel = useCallback(
     (id: PanelId) => {
+      if (id === "calendar" && !isCalendarConfigured) return;
       if (closingRef.current.has(id)) return;
       if (openStackRef.current.includes(id)) return;
 
