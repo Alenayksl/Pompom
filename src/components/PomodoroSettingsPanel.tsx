@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { PresetDurations } from "@/components/PresetDurations";
 import {
   MAX_PRESET_MINUTES,
   MIN_PRESET_MINUTES,
@@ -21,10 +22,6 @@ const EMPTY_DRAFT: CustomPresetInput = {
   longBreakMinutes: 30,
 };
 
-function formatLongBreaks(options: number[]) {
-  return `${options.join(" / ")} min long break`;
-}
-
 type PresetFormProps = {
   initial: CustomPresetInput;
   submitLabel: string;
@@ -40,10 +37,14 @@ function PresetForm({ initial, submitLabel, onSubmit, onCancel }: PresetFormProp
     onSubmit(draft);
   }
 
-  const durationFields: { key: keyof Omit<CustomPresetInput, "name">; label: string }[] = [
-    { key: "focusMinutes", label: "Focus" },
-    { key: "shortBreakMinutes", label: "Break" },
-    { key: "longBreakMinutes", label: "Long break" },
+  const durationFields: {
+    key: keyof Omit<CustomPresetInput, "name">;
+    label: string;
+    tone: string;
+  }[] = [
+    { key: "focusMinutes", label: "Focus", tone: "bg-mist text-moss-deep" },
+    { key: "shortBreakMinutes", label: "Break", tone: "bg-butter-soft text-honey-deep" },
+    { key: "longBreakMinutes", label: "Long break", tone: "bg-butter-soft text-honey-deep" },
   ];
 
   return (
@@ -66,12 +67,12 @@ function PresetForm({ initial, submitLabel, onSubmit, onCancel }: PresetFormProp
       </label>
 
       <div className="grid grid-cols-3 gap-2">
-        {durationFields.map(({ key, label }) => (
+        {durationFields.map(({ key, label, tone }) => (
           <label key={key} className="flex flex-col gap-1">
             <span className="text-[10px] font-medium uppercase tracking-wider text-soil-muted">
               {label}
             </span>
-            <div className="flex items-center gap-1 rounded-lg border border-border-soft bg-cream px-2 py-1.5 focus-within:border-sage">
+            <div className={`flex items-center gap-1 rounded-lg border border-transparent px-2 py-1.5 focus-within:border-sage ${tone}`}>
               <input
                 type="number"
                 required
@@ -81,9 +82,9 @@ function PresetForm({ initial, submitLabel, onSubmit, onCancel }: PresetFormProp
                 onChange={(e) =>
                   setDraft({ ...draft, [key]: e.target.valueAsNumber })
                 }
-                className="w-full min-w-0 bg-transparent text-sm tabular-nums text-soil outline-none"
+                className="w-full min-w-0 bg-transparent text-sm font-medium tabular-nums outline-none"
               />
-              <span className="text-[10px] text-soil-muted">min</span>
+              <span className="text-[10px] opacity-70">min</span>
             </div>
           </label>
         ))}
@@ -121,15 +122,15 @@ function PresetCard({ preset, isActive, onSelect, onEdit, onDelete }: PresetCard
     <div
       className={`group relative rounded-xl border transition-colors ${
         isActive
-          ? "border-sage bg-mist/50"
-          : "border-border-soft bg-panel hover:border-sage hover:bg-mist/30"
+          ? "border-moss bg-mist shadow-[0_1px_0_rgba(92,107,82,0.08)]"
+          : "border-border-soft bg-panel hover:border-sage hover:bg-mist/40"
       }`}
     >
       <button
         type="button"
         onClick={onSelect}
         aria-pressed={isActive}
-        className="flex w-full flex-col gap-1 px-3 py-2.5 text-left"
+        className="flex w-full flex-col gap-2 px-3 py-3 text-left"
       >
         <span className="flex items-center gap-2">
           <span
@@ -141,12 +142,14 @@ function PresetCard({ preset, isActive, onSelect, onEdit, onDelete }: PresetCard
             {isActive && <span className="h-1.5 w-1.5 rounded-full bg-cream" />}
           </span>
           <span className="text-sm font-semibold text-soil">{preset.name}</span>
+          {isActive && (
+            <span className="rounded-full bg-moss px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-cream">
+              Active
+            </span>
+          )}
         </span>
-        <span className="pl-5.5 text-xs text-soil-muted">
-          {preset.focusMinutes} min focus · {preset.shortBreakMinutes} min break
-        </span>
-        <span className="pl-5.5 text-xs text-soil-muted">
-          {formatLongBreaks(preset.longBreakOptions)}
+        <span className="pl-5.5">
+          <PresetDurations preset={preset} showLongBreak />
         </span>
       </button>
 
@@ -197,6 +200,40 @@ export function PomodoroSettingsPanel({ isClosing, onClose }: PomodoroSettingsPa
     setEditingId(null);
   }
 
+  const sections = [
+    { title: "Presets", items: presets.filter((preset) => !preset.isCustom) },
+    { title: "Your pomodoros", items: presets.filter((preset) => preset.isCustom) },
+  ];
+
+  function renderPreset(preset: PomodoroPreset) {
+    if (editingId === preset.id) {
+      return (
+        <PresetForm
+          key={preset.id}
+          initial={{
+            name: preset.name,
+            focusMinutes: preset.focusMinutes,
+            shortBreakMinutes: preset.shortBreakMinutes,
+            longBreakMinutes: preset.longBreakOptions[0],
+          }}
+          submitLabel="Save"
+          onSubmit={(input) => handleUpdate(preset.id, input)}
+          onCancel={() => setEditingId(null)}
+        />
+      );
+    }
+    return (
+      <PresetCard
+        key={preset.id}
+        preset={preset}
+        isActive={preset.id === activePreset.id}
+        onSelect={() => selectPreset(preset.id)}
+        onEdit={() => setEditingId(preset.id)}
+        onDelete={() => removeCustomPreset(preset.id)}
+      />
+    );
+  }
+
   return (
     <div
       className={`h-full shrink-0 overflow-hidden ${
@@ -230,29 +267,14 @@ export function PomodoroSettingsPanel({ isClosing, onClose }: PomodoroSettingsPa
             focus session.
           </p>
 
-          {presets.map((preset) =>
-            editingId === preset.id ? (
-              <PresetForm
-                key={preset.id}
-                initial={{
-                  name: preset.name,
-                  focusMinutes: preset.focusMinutes,
-                  shortBreakMinutes: preset.shortBreakMinutes,
-                  longBreakMinutes: preset.longBreakOptions[0],
-                }}
-                submitLabel="Save"
-                onSubmit={(input) => handleUpdate(preset.id, input)}
-                onCancel={() => setEditingId(null)}
-              />
-            ) : (
-              <PresetCard
-                key={preset.id}
-                preset={preset}
-                isActive={preset.id === activePreset.id}
-                onSelect={() => selectPreset(preset.id)}
-                onEdit={() => setEditingId(preset.id)}
-                onDelete={() => removeCustomPreset(preset.id)}
-              />
+          {sections.map(({ title, items }) =>
+            items.length === 0 ? null : (
+              <div key={title} className="flex flex-col gap-2">
+                <h3 className="pt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-soil-muted">
+                  {title}
+                </h3>
+                {items.map(renderPreset)}
+              </div>
             ),
           )}
 

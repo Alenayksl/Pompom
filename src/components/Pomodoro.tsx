@@ -167,19 +167,32 @@ export function Pomodoro({
           ? "Long break"
           : "Choose a long break";
 
+  // Focus stays green; breaks (and the long-break choice) turn butter yellow
+  const isBreak = phase !== "focus";
+
   return (
     <section className="rounded-2xl border border-border-soft bg-panel p-4 shadow-[0_1px_0_rgba(92,107,82,0.04)]">
       <h2 className="mb-3 text-sm font-semibold text-moss-deep">Pomodoro</h2>
       <div className="flex flex-col items-center gap-4">
-        <div className="flex h-28 w-28 items-center justify-center rounded-full border-4 border-sage-soft bg-mist">
+        <div
+          className={`flex h-28 w-28 items-center justify-center rounded-full border-4 transition-colors duration-500 ${
+            isBreak ? "border-butter bg-butter-soft" : "border-sage-soft bg-mist"
+          }`}
+        >
           <div className="text-center">
             <p className="text-2xl font-semibold tabular-nums tracking-tight text-soil">{formatTime(secondsLeft)}</p>
-            <p className="text-[10px] font-medium uppercase tracking-wider text-soil-muted">{phaseLabel}</p>
+            <p
+              className={`text-[10px] font-medium uppercase tracking-wider ${
+                isBreak ? "text-honey-deep" : "text-soil-muted"
+              }`}
+            >
+              {phaseLabel}
+            </p>
           </div>
         </div>
 
         {phase === "long-choice" ? (
-          <div className="w-full rounded-xl bg-sage-soft/60 p-3 text-center">
+          <div className="w-full rounded-xl bg-butter-soft p-3 text-center">
             <p className="mb-2 text-xs font-medium text-soil">{POMODOROS_BEFORE_LONG_BREAK} pomodoros complete. Choose a long break.</p>
             <div className="flex gap-2">
               {activePreset.longBreakOptions.map((minutes) => (
@@ -187,7 +200,7 @@ export function Pomodoro({
                   key={minutes}
                   type="button"
                   onClick={() => chooseLongBreak(minutes)}
-                  className="flex-1 rounded-xl bg-moss px-2 py-2 text-sm font-medium text-cream transition-colors hover:bg-moss-deep"
+                  className="flex-1 rounded-xl bg-butter px-2 py-2 text-sm font-medium text-honey-deep transition-colors hover:bg-honey hover:text-panel"
                 >
                   {minutes} min
                 </button>
@@ -199,7 +212,11 @@ export function Pomodoro({
             <button
               type="button"
               onClick={toggleRunning}
-              className="flex-1 rounded-xl bg-moss px-3 py-2 text-sm font-medium text-cream transition-colors hover:bg-moss-deep"
+              className={`flex-1 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                isBreak
+                  ? "bg-butter text-honey-deep hover:bg-honey hover:text-panel"
+                  : "bg-moss text-cream hover:bg-moss-deep"
+              }`}
             >
               {isRunning ? "Pause" : "Start"}
             </button>
