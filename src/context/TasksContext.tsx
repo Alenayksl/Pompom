@@ -117,7 +117,11 @@ export function TasksProvider({ children }: { children: React.ReactNode }) {
   const removeTask = useCallback(
     (id: string) => {
       setTasks((prev) => prev.filter((task) => task.id !== id));
-      void supabase.from("tasks").delete().eq("id", id);
+      void (async () => {
+        await pendingCreates.current[id];
+        const { error } = await supabase.from("tasks").delete().eq("id", id);
+        if (error) console.error("Could not delete task.", error);
+      })();
     },
     [supabase],
   );

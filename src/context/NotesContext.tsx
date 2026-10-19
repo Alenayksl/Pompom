@@ -143,7 +143,16 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
   const removeNote = useCallback(
     (id: string) => {
       setNotes((prev) => prev.filter((note) => note.id !== id));
-      void supabase.from("notes").delete().eq("id", id);
+
+      const existingTimer = updateTimers.current[id];
+      if (existingTimer) window.clearTimeout(existingTimer);
+      delete updateTimers.current[id];
+      delete pendingUpdates.current[id];
+      void (async () => {
+        await pendingCreates.current[id];
+        const { error } = await supabase.from("notes").delete().eq("id", id);
+        if (error) console.error("Could not delete note.", error);
+      })();
     },
     [supabase],
   );
