@@ -29,6 +29,7 @@ Each completed focus session helps the hand-drawn pomodoro flower grow through t
 - Flower growth progress linked to completed focus sessions
 - Personal notes stored per user
 - Task list with completion tracking
+- Google Calendar connection showing the next 7 days of events (read-only)
 - Account sign-out and account deletion
 - Row Level Security policies for user-owned data
 
@@ -58,9 +59,12 @@ Each completed focus session helps the hand-drawn pomodoro flower grow through t
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
    ```
 
    `SUPABASE_SERVICE_ROLE_KEY` is used only by the server-side account deletion endpoint. Never expose it to the browser or commit it to source control.
+
+   `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is optional and enables the Calendar card. In [Google Cloud Console](https://console.cloud.google.com/), enable the Google Calendar API, configure the OAuth consent screen, and create an OAuth client ID of type *Web application* with your site origins (for example `http://localhost:3000`) under *Authorized JavaScript origins*. Pompom requests only the `calendar.readonly` scope, and the access token stays in the browser session.
 
 3. In the Supabase SQL Editor, run the scripts in this order:
    - `supabase/notes_tasks.sql`

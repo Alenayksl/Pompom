@@ -121,6 +121,33 @@ body {
   animation: notes-panel-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
+@keyframes calendar-panel-in {
+  from {
+    width: 0;
+  }
+  to {
+    width: 26rem;
+  }
+}
+
+@keyframes calendar-panel-out {
+  from {
+    width: 26rem;
+  }
+  to {
+    width: 0;
+  }
+}
+
+.calendar-panel-enter {
+  width: 26rem;
+  animation: calendar-panel-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.calendar-panel-exit {
+  animation: calendar-panel-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
 .todo-task-exit {
   animation: todo-task-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   overflow: hidden;
