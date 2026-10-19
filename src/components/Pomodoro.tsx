@@ -1,13 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  playBreakCompleteSound,
+  playFocusCompleteSound,
+  unlockAudio,
+} from "@/lib/sounds";
 
 type TimerPhase = "focus" | "short-break" | "long-break" | "long-choice";
+
+const PHASE_TITLES: Record<Exclude<TimerPhase, "long-choice">, string> = {
+  focus: "Focus",
+  "short-break": "Short break",
+  "long-break": "Long break",
+};
 
 const FOCUS_SECONDS = 25 * 60;
 const SHORT_BREAK_SECONDS = 5 * 60;
 const LONG_BREAK_OPTIONS = [15, 30] as const;
 const POMODOROS_BEFORE_LONG_BREAK = 8;
+
+function deadlineIn(seconds: number) {
+  return Date.now() + seconds * 1000;
+}
 
 function formatTime(seconds: number) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
@@ -30,38 +45,50 @@ export function Pomodoro({
   const [secondsLeft, setSecondsLeft] = useState(FOCUS_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
+  // Wall-clock end of the running phase; background tabs throttle timers, so we
+  // derive the remaining time from this instead of counting ticks.
+  const endsAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isRunning || phase === "long-choice") return;
 
     const interval = window.setInterval(() => {
-      if (secondsLeft > 1) {
-        setSecondsLeft(secondsLeft - 1);
+      const endsAt = endsAtRef.current;
+      if (endsAt === null) return;
+
+      const remaining = Math.ceil((endsAt - Date.now()) / 1000);
+      if (remaining > 0) {
+        setSecondsLeft(remaining);
         return;
       }
 
       if (phase === "focus") {
+        playFocusCompleteSound();
         const nextCompleted = completedPomodoros + 1;
         setCompletedPomodoros(nextCompleted);
         onFocusComplete?.();
         if (nextCompleted === POMODOROS_BEFORE_LONG_BREAK) {
+          endsAtRef.current = null;
           setPhase("long-choice");
           setIsRunning(false);
           setSecondsLeft(0);
           return;
         }
+        endsAtRef.current = deadlineIn(SHORT_BREAK_SECONDS);
         setPhase("short-break");
         setSecondsLeft(SHORT_BREAK_SECONDS);
         return;
       }
 
+      playBreakCompleteSound();
       if (phase === "long-break") {
         onLongBreakComplete?.();
         setCompletedPomodoros(0);
       }
+      endsAtRef.current = deadlineIn(FOCUS_SECONDS);
       setPhase("focus");
       setSecondsLeft(FOCUS_SECONDS);
-    }, 1000);
+    }, 250);
 
     return () => window.clearInterval(interval);
   }, [
@@ -70,10 +97,37 @@ export function Pomodoro({
     onFocusComplete,
     onLongBreakComplete,
     phase,
-    secondsLeft,
   ]);
 
+  const isIdle = !isRunning && phase === "focus" && secondsLeft === FOCUS_SECONDS;
+
+  useEffect(() => {
+    if (isIdle) return;
+
+    const originalTitle = document.title;
+    document.title =
+      phase === "long-choice"
+        ? `Long break time! | pomPom`
+        : `${isRunning ? "" : "⏸ "}${formatTime(secondsLeft)} · ${PHASE_TITLES[phase]} | pomPom`;
+
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [isIdle, isRunning, phase, secondsLeft]);
+
+  function toggleRunning() {
+    if (isRunning) {
+      endsAtRef.current = null;
+      setIsRunning(false);
+      return;
+    }
+    unlockAudio();
+    endsAtRef.current = deadlineIn(secondsLeft);
+    setIsRunning(true);
+  }
+
   function resetTimer() {
+    endsAtRef.current = null;
     setIsRunning(false);
     setPhase("focus");
     setSecondsLeft(FOCUS_SECONDS);
@@ -82,6 +136,8 @@ export function Pomodoro({
   }
 
   function chooseLongBreak(minutes: number) {
+    unlockAudio();
+    endsAtRef.current = deadlineIn(minutes * 60);
     setPhase("long-break");
     setSecondsLeft(minutes * 60);
     setIsRunning(true);
@@ -128,7 +184,7 @@ export function Pomodoro({
           <div className="flex w-full gap-2">
             <button
               type="button"
-              onClick={() => setIsRunning((running) => !running)}
+              onClick={toggleRunning}
               className="flex-1 rounded-xl bg-moss px-3 py-2 text-sm font-medium text-cream transition-colors hover:bg-moss-deep"
             >
               {isRunning ? "Pause" : "Start"}
