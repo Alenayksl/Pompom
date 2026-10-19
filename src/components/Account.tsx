@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { CALENDAR_TOKEN_KEY } from "@/context/CalendarContext";
 
 export function Account() {
   const router = useRouter();
@@ -62,6 +63,7 @@ export function Account() {
       return;
     }
 
+    sessionStorage.removeItem(CALENDAR_TOKEN_KEY);
     router.replace("/login");
     router.refresh();
   }
@@ -83,6 +85,7 @@ export function Account() {
       }
 
       await supabase.auth.signOut().catch(() => undefined);
+      sessionStorage.removeItem(CALENDAR_TOKEN_KEY);
       router.replace("/login");
       router.refresh();
     } catch (err) {
