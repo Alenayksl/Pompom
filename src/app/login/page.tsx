@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/AuthForm";
 
@@ -18,6 +19,14 @@ export default function LoginPage() {
             <AuthForm />
           </div>
         </Suspense>
+        <p className="mt-6 text-center text-xs text-soil-muted">
+          <Link
+            href="/privacy"
+            className="underline-offset-2 hover:text-moss-deep hover:underline"
+          >
+            Privacy Policy
+          </Link>
+        </p>
       </div>
     </main>
   );

@@ -11,7 +11,9 @@ export function AuthForm() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") || "/";
 
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get("mode") === "register" ? "register" : "login",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
