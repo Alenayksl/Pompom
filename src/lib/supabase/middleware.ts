@@ -38,7 +38,18 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute =
     pathname.startsWith("/login") || pathname.startsWith("/auth");
   // Public pages must be reachable without an account (e.g. Google's reviewers)
-  const isPublicRoute = pathname === "/privacy";
+  const isPublicRoute = pathname === "/privacy" || pathname === "/welcome";
+
+  // Visitors who are not signed in see the landing page at the site root
+  if (!user && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/welcome";
+    const rewrite = NextResponse.rewrite(url);
+    supabaseResponse.cookies
+      .getAll()
+      .forEach((cookie) => rewrite.cookies.set(cookie));
+    return rewrite;
+  }
 
   if (!user && !isAuthRoute && !isPublicRoute) {
     const url = request.nextUrl.clone();
@@ -47,7 +58,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && pathname.startsWith("/login")) {
+  if (user && (pathname.startsWith("/login") || pathname === "/welcome")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     url.search = "";
