@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Quicksand } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const quicksand = Quicksand({
@@ -56,6 +57,7 @@ export default function RootLayout({
     <html lang="en" className={`${quicksand.variable} h-full antialiased`}>
       <body className="min-h-full overflow-hidden bg-cream font-sans text-soil">
         {children}
+        <Analytics />
       </body>
     </html>
   );
